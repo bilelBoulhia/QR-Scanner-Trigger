@@ -95,7 +95,7 @@ export default function  Page(){
                         </View>
                     </View>
                 </LinearGradient>
-                <Button title='test' onPress={tempPushing}/>
+
             </TouchableOpacity>
 
         </View>
