@@ -1,31 +1,47 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect} from 'react';
 import {View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert, Modal, TextInput} from 'react-native';
 import {BarcodeScanningResult, Camera, CameraView} from 'expo-camera';
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
-import {useRouter} from "expo-router";
+import {Redirect, useLocalSearchParams, useRootNavigationState, useRouter} from "expo-router";
+import {useToken} from "../context/authProvider";
 
 const { width } = Dimensions.get('window');
 const qrSize = width * 0.7;
 
 
+
+function CheckIfExist(list:string[], target:string) {
+    if(!list || !target) return null;
+    for (let i = 0; i < list.length; i++) {
+        if (target.trim() === list[i][1].trim()) {
+            return list[i][0];
+        }
+    }
+    return null;
+}
+
+
+
+
 export default function Page() {
 
 
-    //const { id } = useLocalSearchParams();
-    // const rootNavigationState = useRootNavigationState();
-    // const {token} = useToken();
-    // if (!rootNavigationState?.key ) return null;
-    // else if(token === null) {
-    //     return <Redirect href={'/'} />
-    // }
+    const { id } = useLocalSearchParams();
+    const rootNavigationState = useRootNavigationState();
+    const {token} = useToken();
+    if (!rootNavigationState?.key ) return null;
+    else if(token === null) {
+        return <Redirect href={'/'} />
+    }
     const [hasPermission, setHasPermission] = useState(null);
-    const [Qrdata,setQrData]= useState<string>(null)
+
     const [fetchedNames, setFetchedNames] = useState<string[]>([]);
     const [enabledTorch, setEnabledTorch] = useState(false);
+    const [modalvisible,setModalvisible] = useState(true);
     const [scanned, setScanned] = useState(false);
-    const [range,setRange] = useState<string>('');
-    const rangeRef = useRef()
+    const [range,setRange] = useState('B:C');
+
     const router = useRouter();
     const handleExit =()=>{
         router.push('/sheets');
@@ -35,6 +51,7 @@ export default function Page() {
             const { status } = await Camera.requestCameraPermissionsAsync();
             setHasPermission(status === 'granted');
         })();
+
     }, []);
 
     if (hasPermission === null) {
@@ -47,24 +64,34 @@ export default function Page() {
 
     const handleScanning = ({ data }: BarcodeScanningResult) => {
         setScanned(true);
-        if (data) {
-            setQrData(data);
-            Alert.alert('Confirmed', `${data}`, [
-                { text: 'OK', onPress: () => setScanned(false) }
+
+        const parsedData = data.match(/name:(.*?)(?:&|$)/)[1];
+        let CheckingResult = CheckIfExist(fetchedNames, parsedData)
+        if(CheckingResult){
+            updateSpreadsheet(token,id,CheckingResult).catch(console.error);
+        }else {
+            CheckingResult  = 'user not found';
+        }
+
+
+        try {
+            Alert.alert('Confirmed', `${CheckingResult}`, [
+                { text: 'OK', onPress: () => setScanned(false) },
+            ]);
+
+        } catch (error) {
+            Alert.alert('Error', error.message || "Failed to parse QR data", [
+                { text: 'OK', onPress: () => setScanned(false) },
             ]);
         }
     };
 
-    //https://sheets.googleapis.com/v4/spreadsheets/1Vem_R2kzjTT6wp8-V9IUpw0tgi5OMDdgA7zX2R6HEUs/values/B2:B
 
-
-
-    const fetchSpreadsheets = async (token:string ='ya29.a0AeDClZC4uaYzil8eLcdWFlaSMQGS_Y-JDW23qKUYrbIn_d8cPJNgmwto-rlq2ZCDETt3o8NL3hq8uL-6JBYczsawCetdanpwwVCDFmYNLL2phAPGtri89JGlkN1GW093w1eH44sZyM82vEABjCwF9I1hxG6k3IUNhKqUJ_c_aCgYKAXkSARMSFQHGX2MiCiBiBqWqMxFcwyF6lozVZA0175',id:string = '1Vem_R2kzjTT6wp8-V9IUpw0tgi5OMDdgA7zX2R6HEUs',range:string) => {
-
+    const fetchSpreadsheetInfo = async (token:string ,id:any,range:string) => {
 
         try {
             const response = await fetch(
-                'https://sheets.googleapis.com/v4/spreadsheets/' +id +'/' + 'values/' + range,
+                `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/${range}`,
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -72,17 +99,124 @@ export default function Page() {
                 }
             );
             const data = await response.json();
-            setFetchedNames(data.values || []);
-        } catch (err) {
-            console.error("error");
+            if(response.status === 200){
+                setFetchedNames(data.values);
+                console.log(data.values);
+            }else if(response.status === 400){
+                Alert.alert('error','column is wrong make sure its in this order Letter + Number : Letter',[
+                    { text: 'OK', onPress: () => setModalvisible(true) }
+                ]);
 
+            }else {
+                Alert.alert('error','there was an error fetching data',[
+                    { text: 'OK', onPress: () => setModalvisible(true) }
+                ]);
+            }
+
+
+        } catch (err) {
+            console.error("error",err);
+        }
+    };
+
+    const handleSubmitRange = async () => {
+        if (!range || range.trim() === '') {
+            Alert.alert('Error', 'Please enter a valid range.');
+            return;
+        }
+        setModalvisible(false);
+        try {
+
+            await  fetchSpreadsheetInfo(token,id,range).catch(err => console.log(err));
+        } catch (err) {
+            Alert.alert('Error', 'Failed to fetch spreadsheet data.')
+        }
+
+    };
+
+
+
+    const updateSpreadsheet = async (token: string, id: any,range:string ) => {
+        try {
+
+            const response = await fetch(
+                `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/N${parseInt(range)+1}?valueInputOption=USER_ENTERED`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        range: `N${parseInt(range)+1}`,
+                        values: [["user came"]],
+                    }),
+                }
+            );
+
+            if (response.ok) {
+                Alert.alert('Success', 'Attendance marked', [
+                    { text: 'OK', onPress: () => setScanned(false) },
+                ]);
+
+            } else {
+                const errorData = await response.json();
+                console.error('Failed to update spreadsheet:', errorData);
+                Alert.alert('Error', 'Failed to update spreadsheet.', [
+                    { text: 'OK', onPress: () => setScanned(false) },
+                ]);
+            }
+        } catch (err) {
+            console.error('Error updating spreadsheet:', err);
+            Alert.alert('Error', 'An error occurred while updating the spreadsheet.', [
+                { text: 'OK', onPress: () => setScanned(false) },
+            ]);
         }
     };
 
 
+
+
     return (
         <View style={styles.container}>
-            {range ? (
+            <Modal
+                transparent={false}
+                animationType="slide"
+                visible={modalvisible}
+
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>enter a range from the sheet</Text>
+                        <TextInput
+                            placeholder="eg. A1:A"
+                            style={styles.input}
+                            value={range}
+                            onChangeText={(text) => setRange(text)}
+                        />
+
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={styles.button}
+                                onPress={() => {
+                                    if (range && range.trim() !== '') {
+                                        handleSubmitRange().catch(err => console.log(err));
+                                    } else {
+                                        Alert.alert('Error', 'Please a enter a valid range.');
+                                    }
+                                }}
+                            >
+                                <Text style={styles.buttonText}>Submit</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+            <Text style={{color:'red',textAlign:'center'}}>{range?.toString()}</Text>
+
+
+            {!modalvisible &&
+
                 <CameraView
                     style={styles.camera}
                     enableTorch={enabledTorch}
@@ -103,6 +237,7 @@ export default function Page() {
                             <View style={styles.cornerTR} />
                             <View style={styles.cornerBL} />
                             <View style={styles.cornerBR} />
+
                         </View>
 
                     </View>
@@ -121,48 +256,15 @@ export default function Page() {
                             onPress={() => handleExit()}
                             style={styles.iconButton}
                         >
-
-
                             <Ionicons name="return-down-back-outline" size={28} color="white" />
                         </TouchableOpacity>
                     </LinearGradient>
                 </CameraView>
-            ) : (
+
+            }
 
 
 
-                <Modal
-                     transparent={false}
-                     visible={true}
-                     animationType="slide"
-
-        >
-            <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Enter a Range</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Enter range"
-
-                        ref={rangeRef.current}
-
-
-
-                    />
-                    <View style={styles.modalButtons}>
-                        <TouchableOpacity
-                            style={styles.button}
-                            onPress={() => {
-                                setRange(rangeRef.current);
-                            }}
-                        >
-                            <Text style={styles.buttonText}>Submit</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </View>
-        </Modal>
-            )}
 
         </View>
     );
