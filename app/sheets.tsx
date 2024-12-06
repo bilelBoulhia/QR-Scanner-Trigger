@@ -112,7 +112,7 @@ export default function Page() {
         default:
             return (
                 <View style={styles.container}>
-                    <Text style={styles.title}>Your Spreadsheets</Text>
+                    <Text style={styles.title}>select a spreadsheet</Text>
                     {spreadsheets && spreadsheets.length > 0 ? (
                         <FlatList
                             data={spreadsheets}
@@ -126,8 +126,7 @@ export default function Page() {
                         </Text>
                     )}
 
-                    <View style={styles.logoutContainer}>
-                        <TouchableOpacity onPress={handleLogout} style={styles.button}>
+                    <TouchableOpacity onPress={handleLogout} style={styles.button}>
                             <LinearGradient
                                 colors={['#60A5FA', '#818CF8', '#A78BFA']}
                                 start={{x: 0, y: 0}}
@@ -137,8 +136,8 @@ export default function Page() {
 
                                 <Text style={styles.text}>Log out </Text>
                             </LinearGradient>
-                        </TouchableOpacity>
-                    </View>
+                    </TouchableOpacity>
+
 
                 </View>
             );
@@ -206,6 +205,7 @@ const styles = StyleSheet.create({
     button: {
         borderRadius: 4,
         overflow: 'hidden',
+        marginTop:8,
         elevation: 3,
         width:150,
         textAlign: 'center',

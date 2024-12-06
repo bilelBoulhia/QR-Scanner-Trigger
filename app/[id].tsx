@@ -212,7 +212,7 @@ function CheckIfExist(list:string[], target:string) {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <TouchableOpacity  style={styles.Exitbutton}  onPress={() => handleExit()}><Ionicons name={'backspace'} style={{color:'white'}}/></TouchableOpacity>
-                        <Text style={styles.modalTitle}>enter a range from the sheet</Text>
+                        <Text style={styles.modalTitle}>select the column from the sheet</Text>
 
                         {columnList.length > 0 ? (
                             <Picker
@@ -236,6 +236,7 @@ function CheckIfExist(list:string[], target:string) {
 
                         <View style={{width:'100%'}}>
                             <TextInput style={{borderRadius:0,padding:12,borderBottomColor:'gray',borderBottomWidth:2,marginTop:10,marginBottom:10 ,width:"100%"}} placeholder='compare it with..' onChange={(value) => setToCompareTO(value)} />
+                            <Text style={{padding:10,color:'gray'}}>make sure the data you want scan in the qrcode is declare in this format value: (e.g.  name:NAMEHERE)</Text>
                         </View>
 
                         <View style={styles.modalButtons}>
