@@ -1,32 +1,33 @@
 import React, {useState, useEffect} from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert, Modal, TextInput} from 'react-native';
+import {View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert, Modal, ActivityIndicator} from 'react-native';
 import {BarcodeScanningResult, Camera, CameraView} from 'expo-camera';
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons} from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
 import {Redirect, useLocalSearchParams, useRootNavigationState, useRouter} from "expo-router";
 import {useToken} from "../context/authProvider";
-
+import RNPickerSelect from 'react-native-picker-select';
 const { width } = Dimensions.get('window');
 const qrSize = width * 0.7;
 
 
-
 function CheckIfExist(list:string[], target:string) {
     if(!list || !target) return null;
-    for (let i = 0; i < list.length; i++) {
-        if (target.trim() === list[i][1].trim()) {
-            return list[i][0];
+    try {
+        for (let i = 0; i < list.length; i++) {
+            if (target.trim() === list[i].toString().trim()) {
+                return i+2;
+            }
         }
+        return null;
     }
-    return null;
+    catch (error) {
+        Alert.alert(error.message);
+
+    }
 }
 
 
-
-
 export default function Page() {
-
-
     const { id } = useLocalSearchParams();
     const rootNavigationState = useRootNavigationState();
     const {token} = useToken();
@@ -34,26 +35,50 @@ export default function Page() {
     else if(token === null) {
         return <Redirect href={'/'} />
     }
-    const [hasPermission, setHasPermission] = useState(null);
 
+    const [hasPermission, setHasPermission] = useState(null);
+    const [columnList,setColumnList] = useState<{label:string,value:string}[]>([]);
     const [fetchedNames, setFetchedNames] = useState<string[]>([]);
     const [enabledTorch, setEnabledTorch] = useState(false);
     const [modalvisible,setModalvisible] = useState(true);
     const [scanned, setScanned] = useState(false);
-    const [range,setRange] = useState('B:C');
+    const [range,setRange] = useState(null);
 
     const router = useRouter();
     const handleExit =()=>{
         router.push('/sheets');
     }
+
     useEffect(() => {
         (async () => {
             const { status } = await Camera.requestCameraPermissionsAsync();
             setHasPermission(status === 'granted');
+
+        })();
+        (async () => {
+            const response = await fetch(
+                    `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/1:1`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+
+                if (response.status === 200) {
+                    const data = await response.json();
+                    const cols = data.values[0]?.map((c: string, i: number) => ({
+                        label: c,
+                        value: `${String.fromCharCode(97 + i)}2:${String.fromCharCode(97 + i)}`,
+                    })) ;
+                    setColumnList(cols);
+
+                } else {
+                    Alert.alert('Error', 'Error fetching data');
+                }
         })();
 
     }, []);
-
     if (hasPermission === null) {
         return <Text>Requesting camera permission...</Text>;
     }
@@ -64,30 +89,21 @@ export default function Page() {
 
     const handleScanning = ({ data }: BarcodeScanningResult) => {
         setScanned(true);
-
-        const parsedData = data.match(/name:(.*?)(?:&|$)/)[1];
+        const parsedData = data.match(/name:(\w+)/)[1];
         let CheckingResult = CheckIfExist(fetchedNames, parsedData)
+
         if(CheckingResult){
-            updateSpreadsheet(token,id,CheckingResult).catch(console.error);
+            updateSpreadsheet(CheckingResult).catch(console.error);
         }else {
-            CheckingResult  = 'user not found';
-        }
+           Alert.alert('Not found', 'user not found', [
+               { text: 'OK', onPress: () => setScanned(false) },
+           ]);
 
-
-        try {
-            Alert.alert('Confirmed', `${CheckingResult}`, [
-                { text: 'OK', onPress: () => setScanned(false) },
-            ]);
-
-        } catch (error) {
-            Alert.alert('Error', error.message || "Failed to parse QR data", [
-                { text: 'OK', onPress: () => setScanned(false) },
-            ]);
         }
     };
 
 
-    const fetchSpreadsheetInfo = async (token:string ,id:any,range:string) => {
+    const fetchSpreadsheetInfo = async () => {
 
         try {
             const response = await fetch(
@@ -101,19 +117,11 @@ export default function Page() {
             const data = await response.json();
             if(response.status === 200){
                 setFetchedNames(data.values);
-                console.log(data.values);
-            }else if(response.status === 400){
-                Alert.alert('error','column is wrong make sure its in this order Letter + Number : Letter',[
-                    { text: 'OK', onPress: () => setModalvisible(true) }
-                ]);
-
             }else {
                 Alert.alert('error','there was an error fetching data',[
                     { text: 'OK', onPress: () => setModalvisible(true) }
                 ]);
             }
-
-
         } catch (err) {
             console.error("error",err);
         }
@@ -126,8 +134,7 @@ export default function Page() {
         }
         setModalvisible(false);
         try {
-
-            await  fetchSpreadsheetInfo(token,id,range).catch(err => console.log(err));
+            await fetchSpreadsheetInfo().catch(err => console.log(err));
         } catch (err) {
             Alert.alert('Error', 'Failed to fetch spreadsheet data.')
         }
@@ -135,12 +142,12 @@ export default function Page() {
     };
 
 
-
-    const updateSpreadsheet = async (token: string, id: any,range:string ) => {
+    const updateSpreadsheet = async (CheckingResult:number) => {
         try {
-
+            // + 1  to avoid overwriting existing cells
+            const columnRange = String.fromCharCode(96 + columnList.length + 1)
             const response = await fetch(
-                `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/N${parseInt(range)+1}?valueInputOption=USER_ENTERED`,
+                `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/${columnRange}${CheckingResult}?valueInputOption=USER_ENTERED`,
                 {
                     method: 'PUT',
                     headers: {
@@ -148,8 +155,9 @@ export default function Page() {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        range: `N${parseInt(range)+1}`,
+                        range: `${columnRange}${CheckingResult}`,
                         values: [["user came"]],
+
                     }),
                 }
             );
@@ -162,7 +170,7 @@ export default function Page() {
             } else {
                 const errorData = await response.json();
                 console.error('Failed to update spreadsheet:', errorData);
-                Alert.alert('Error', 'Failed to update spreadsheet.', [
+                Alert.alert('Error', 'Failed to update spreadsheet, make sure you have an empty column to write the values , and you are using one sheet in the spreadsheet.', [
                     { text: 'OK', onPress: () => setScanned(false) },
                 ]);
             }
@@ -183,18 +191,19 @@ export default function Page() {
                 transparent={false}
                 animationType="slide"
                 visible={modalvisible}
-
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>enter a range from the sheet</Text>
-                        <TextInput
-                            placeholder="eg. A1:A"
-                            style={styles.input}
-                            value={range}
-                            onChangeText={(text) => setRange(text)}
-                        />
-
+                        {columnList.length > 0 ? (
+                                <RNPickerSelect
+                                    items={columnList}
+                                    onValueChange={(value) => setRange(value)}
+                                />
+                            ) : (
+                                <ActivityIndicator size="large" color="#0000ff" />
+                            )
+                        }
                         <View style={styles.modalButtons}>
                             <TouchableOpacity
                                 style={styles.button}
@@ -213,10 +222,7 @@ export default function Page() {
                 </View>
             </Modal>
             <Text style={{color:'red',textAlign:'center'}}>{range?.toString()}</Text>
-
-
             {!modalvisible &&
-
                 <CameraView
                     style={styles.camera}
                     enableTorch={enabledTorch}
@@ -241,7 +247,6 @@ export default function Page() {
                         </View>
 
                     </View>
-
                     <LinearGradient
                         colors={['transparent', 'rgba(0,0,0,0.8)']}
                         style={styles.gradientBottom}
@@ -262,10 +267,6 @@ export default function Page() {
                 </CameraView>
 
             }
-
-
-
-
         </View>
     );
 }

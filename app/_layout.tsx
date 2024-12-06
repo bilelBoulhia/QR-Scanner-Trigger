@@ -12,7 +12,7 @@ export default function Layout() {
             >
                 <Stack.Screen name="index"  />
                 <Stack.Screen name="sheets"  />
-                <Stack.Screen name="test"  />
+
             </Stack>
         </AuthProvider>
     );
