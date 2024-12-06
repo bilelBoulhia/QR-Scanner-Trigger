@@ -126,23 +126,33 @@ export default function Page() {
                         </Text>
                     )}
 
-                    <TouchableOpacity onPress={handleLogout} style={styles.button}>
-                        <LinearGradient
-                            colors={['#60A5FA', '#818CF8', '#A78BFA']}
-                            start={{x: 0, y: 0}}
-                            end={{x: 1, y: 0}}
-                            style={styles.gradient}
-                        >
+                    <View style={styles.logoutContainer}>
+                        <TouchableOpacity onPress={handleLogout} style={styles.button}>
+                            <LinearGradient
+                                colors={['#60A5FA', '#818CF8', '#A78BFA']}
+                                start={{x: 0, y: 0}}
+                                end={{x: 1, y: 0}}
+                                style={styles.gradient}
+                            >
 
-                            <Text style={styles.text}>Log out </Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
+                                <Text style={styles.text}>Log out </Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
+
                 </View>
             );
     }
 }
 
 const styles = StyleSheet.create({
+    logoutContainer:{
+
+        position: "absolute",
+        bottom: 0,
+        left: '50%',
+        transform: "translate(-50%, -50%)",
+    },
     container: {
         flex: 1,
         backgroundColor: '#f5f5f5',
