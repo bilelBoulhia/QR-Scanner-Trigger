@@ -1,4 +1,4 @@
-import {View, Text, TouchableOpacity, Platform, Animated, Button} from "react-native";
+import {View, Text, TouchableOpacity, Platform, Animated} from "react-native";
 import * as WebBrowser from 'expo-web-browser';
 import { StyleSheet } from "react-native";
 import * as Google from 'expo-auth-session/providers/google';
@@ -7,6 +7,7 @@ import {LinearGradient} from "expo-linear-gradient";
 import {Ionicons} from "@expo/vector-icons";
 import {useToken} from "../context/authProvider";
 import {router} from "expo-router";
+
 const webClientId = '623858970830-s2tnvsvmo2jvo921mdpenpug5b3k07a6.apps.googleusercontent.com'
 const androidClientId = '623858970830-2qloc0ubuusb7vd4jvhg0s0nbblfa19c.apps.googleusercontent.com'
 
@@ -30,25 +31,19 @@ export default function  Page(){
     const { setToken } = useToken();
     const [request,response,promptAsync] = Google.useAuthRequest(config)
 
-    const handleToken =async () => {
+    const handleToken = () => {
         if (response?.type === "success") {
             const token = response.authentication?.accessToken;
             if (token) {
                 setToken(token);
                 router.push('/sheets');
-                console.log("Token:", token);
-            } else {
-                console.error("Failed to retrieve the token");
             }
         } else {
-            console.error("Authentication response type is not 'success'");
+            console.error("failed to authenticate");
         }
     };
 
 
-    const tempPushing= ()=>{
-        router.push('/test');
-    }
 
 
     const fadeAnim = new Animated.Value(0);
@@ -71,6 +66,8 @@ export default function  Page(){
             handleToken();
         }
     }, [response]);
+
+
 
 
     return (
@@ -99,6 +96,21 @@ export default function  Page(){
             </TouchableOpacity>
 
 
+            <View  style={styles.meView}>
+                <LinearGradient
+                    colors={[ '#818CF8', '#A78BFA']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.gradient}
+                >
+                    <Text style={styles.text}>
+                        Made by bilel {'<3'}
+                    </Text>
+                </LinearGradient>
+
+            </View>
+
+
         </View>
     )
 }
@@ -106,6 +118,7 @@ export default function  Page(){
 
 
 const styles = StyleSheet.create({
+
 
     textContainer: {
         display: 'flex',
@@ -124,6 +137,18 @@ const styles = StyleSheet.create({
         fontSize: 72,
         color: '#333',
         letterSpacing: -2,
+    },
+    meView: {
+        position: 'absolute',
+        bottom: 10,
+        borderRadius: 25,
+        overflow: 'hidden',
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+
     },
     button: {
         borderRadius: 4,
