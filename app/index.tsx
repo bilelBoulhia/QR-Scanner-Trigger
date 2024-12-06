@@ -8,7 +8,7 @@ import {Ionicons} from "@expo/vector-icons";
 import {useToken} from "../context/authProvider";
 import {router} from "expo-router";
 //it's okay for these keys to public
-const webClientId = '623858970830-s2tnvsvmo2jvo921mdpenpug5b3k07a6.apps.googleusercontent.com'
+
 const androidClientId = '623858970830-2qloc0ubuusb7vd4jvhg0s0nbblfa19c.apps.googleusercontent.com'
 
 WebBrowser.maybeCompleteAuthSession();
