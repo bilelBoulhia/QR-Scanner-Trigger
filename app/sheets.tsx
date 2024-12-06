@@ -11,7 +11,7 @@ import {LinearGradient} from "expo-linear-gradient";
 const LoadingSpinner = () => {
     return (
         <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color="#0000ff" />
+            <ActivityIndicator size="large" color="purple" />
         </View>
     )
 }
@@ -30,7 +30,7 @@ const Retry = ({error ,fn}:{error:string,fn:Promise<void>})=>{
 export default function Page() {
 
 
-    const rootNavigationState = useRootNavigationState();
+    //
     const {token, setToken} = useToken();
      if(token === null) {
         return <Redirect href={'/'} />
@@ -95,12 +95,12 @@ export default function Page() {
             <Text style={styles.itemText}>{item.name}</Text>
         </TouchableOpacity>
     );
-
+    const rootNavigationState = useRootNavigationState();
     switch (true) {
         case !rootNavigationState?.key:
             return null;
 
-        case token === null:
+        case token == null:
             return <Redirect href={'/'}/>;
 
         case isLoading:

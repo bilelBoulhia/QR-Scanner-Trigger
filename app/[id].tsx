@@ -1,13 +1,25 @@
 import React, {useState, useEffect} from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert, Modal, ActivityIndicator} from 'react-native';
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+    Dimensions,
+    Alert,
+    Modal,
+    ActivityIndicator,
+    TextInput
+} from 'react-native';
 import {BarcodeScanningResult, Camera, CameraView} from 'expo-camera';
 import { Ionicons} from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
 import {Redirect, useLocalSearchParams, useRootNavigationState, useRouter} from "expo-router";
 import {useToken} from "../context/authProvider";
-import RNPickerSelect from 'react-native-picker-select';
+
+import {Picker} from "@react-native-picker/picker";
 const { width } = Dimensions.get('window');
 const qrSize = width * 0.7;
+
 
 
 function CheckIfExist(list:string[], target:string) {
@@ -26,27 +38,30 @@ function CheckIfExist(list:string[], target:string) {
     }
 }
 
-
-export default function Page() {
+ export default function Page() {
     const { id } = useLocalSearchParams();
-    const rootNavigationState = useRootNavigationState();
     const {token} = useToken();
+    const rootNavigationState = useRootNavigationState();
     if (!rootNavigationState?.key ) return null;
     else if(token === null) {
         return <Redirect href={'/'} />
     }
+
+
+
 
     const [hasPermission, setHasPermission] = useState(null);
     const [columnList,setColumnList] = useState<{label:string,value:string}[]>([]);
     const [fetchedNames, setFetchedNames] = useState<string[]>([]);
     const [enabledTorch, setEnabledTorch] = useState(false);
     const [modalvisible,setModalvisible] = useState(true);
+    const [ToCompareTO, setToCompareTO] = useState(null);
     const [scanned, setScanned] = useState(false);
     const [range,setRange] = useState(null);
 
     const router = useRouter();
     const handleExit =()=>{
-        router.push('/sheets');
+        router.replace('/sheets');
     }
 
     useEffect(() => {
@@ -72,7 +87,7 @@ export default function Page() {
                         value: `${String.fromCharCode(97 + i)}2:${String.fromCharCode(97 + i)}`,
                     })) ;
                     setColumnList(cols);
-
+                    console.log('cols', cols);
                 } else {
                     Alert.alert('Error', 'Error fetching data');
                 }
@@ -89,7 +104,7 @@ export default function Page() {
 
     const handleScanning = ({ data }: BarcodeScanningResult) => {
         setScanned(true);
-        const parsedData = data.match(/name:(\w+)/)[1];
+        const parsedData = data.match(`${ToCompareTO}:(\\w+)`)[1];
         let CheckingResult = CheckIfExist(fetchedNames, parsedData)
 
         if(CheckingResult){
@@ -119,7 +134,7 @@ export default function Page() {
                 setFetchedNames(data.values);
             }else {
                 Alert.alert('error','there was an error fetching data',[
-                    { text: 'OK', onPress: () => setModalvisible(true) }
+                    { text: 'OK', onPress: () => setModalvisible(true)}
                 ]);
             }
         } catch (err) {
@@ -185,33 +200,52 @@ export default function Page() {
 
 
 
+
     return (
         <View style={styles.container}>
             <Modal
                 transparent={false}
                 animationType="slide"
+
                 visible={modalvisible}
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
+                        <TouchableOpacity  style={styles.Exitbutton}  onPress={() => handleExit()}><Ionicons name={'backspace'} style={{color:'white'}}/></TouchableOpacity>
                         <Text style={styles.modalTitle}>enter a range from the sheet</Text>
+
                         {columnList.length > 0 ? (
-                                <RNPickerSelect
-                                    items={columnList}
-                                    onValueChange={(value) => setRange(value)}
-                                />
-                            ) : (
-                                <ActivityIndicator size="large" color="#0000ff" />
-                            )
-                        }
+                            <Picker
+                                selectedValue={range}
+                                onValueChange={(itemValue) => setRange(itemValue)}
+                                style={styles.picker}
+                            >
+                                <Picker.Item label="Select a column" value={null} />
+
+                                {columnList.map((column, index) => (
+                                    <Picker.Item
+                                        key={index}
+                                        label={column.label}
+                                        value={column.value}
+                                    />
+                                ))}
+                            </Picker>
+                        ):(
+                            <ActivityIndicator color='pruple'/>
+                        )}
+
+                        <View style={{width:'100%'}}>
+                            <TextInput style={{borderRadius:0,padding:12,borderBottomColor:'gray',borderBottomWidth:2,marginTop:10,marginBottom:10 ,width:"100%"}} placeholder='compare it with..' onChange={(value) => setToCompareTO(value)} />
+                        </View>
+
                         <View style={styles.modalButtons}>
                             <TouchableOpacity
                                 style={styles.button}
                                 onPress={() => {
-                                    if (range && range.trim() !== '') {
+                                    if (range &&  ToCompareTO &&  range.trim()  !== '') {
                                         handleSubmitRange().catch(err => console.log(err));
                                     } else {
-                                        Alert.alert('Error', 'Please a enter a valid range.');
+                                        Alert.alert('Error', 'Please a enter  valid data.');
                                     }
                                 }}
                             >
@@ -221,7 +255,7 @@ export default function Page() {
                     </View>
                 </View>
             </Modal>
-            <Text style={{color:'red',textAlign:'center'}}>{range?.toString()}</Text>
+
             {!modalvisible &&
                 <CameraView
                     style={styles.camera}
@@ -289,6 +323,10 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: "bold",
         marginBottom: 10,
+    },
+    picker: {
+        width: '100%',
+        height: 50,
     },
     input: {
         width: "100%",
@@ -403,9 +441,15 @@ const styles = StyleSheet.create({
         left: 20,
         right: 20,
     },
+    Exitbutton: {
+        padding: 10,
+        backgroundColor: "#6930a8",
+        borderRadius: 5,
+        alignSelf:'flex-end',
+    },
     button: {
         padding: 10,
-        backgroundColor: "#007BFF",
+        backgroundColor: "#6930a8",
         borderRadius: 5,
     },
     buttonText: {
