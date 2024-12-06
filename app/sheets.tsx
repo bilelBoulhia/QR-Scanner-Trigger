@@ -28,8 +28,13 @@ const Retry = ({error ,fn}:{error:string,fn:Promise<void>})=>{
 }
 
 export default function Page() {
+
+
     const rootNavigationState = useRootNavigationState();
     const {token, setToken} = useToken();
+     if(token === null) {
+        return <Redirect href={'/'} />
+    }
     const [spreadsheets, setSpreadsheets] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
