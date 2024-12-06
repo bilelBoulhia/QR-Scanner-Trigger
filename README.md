@@ -2,6 +2,9 @@
 
 Quick and dirty event attendance tracking
 
+## Download it for android from here 
+https://www.mediafire.com/file/w0lu09jook6soim/qrscanner.apk/file
+
 ## What's This?
 
 Basically, an app that lets you scan QR codes and  update a spreadsheet. Perfect for event managers who are tired of manual check-ins.
