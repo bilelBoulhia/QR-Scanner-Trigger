@@ -11,7 +11,7 @@ import {LinearGradient} from "expo-linear-gradient";
 const LoadingSpinner = () => {
     return (
         <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color="purple" />
+            <ActivityIndicator size="large" color="#60A5FA" />
         </View>
     )
 }
