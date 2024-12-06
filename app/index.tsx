@@ -1,4 +1,4 @@
-import {View, Text, TouchableOpacity, Platform, Animated} from "react-native";
+import {View, Text, TouchableOpacity, Platform, Animated, Button, Linking} from "react-native";
 import * as WebBrowser from 'expo-web-browser';
 import { StyleSheet } from "react-native";
 import * as Google from 'expo-auth-session/providers/google';
@@ -7,7 +7,7 @@ import {LinearGradient} from "expo-linear-gradient";
 import {Ionicons} from "@expo/vector-icons";
 import {useToken} from "../context/authProvider";
 import {router} from "expo-router";
-
+//it's okay for these keys to public
 const webClientId = '623858970830-s2tnvsvmo2jvo921mdpenpug5b3k07a6.apps.googleusercontent.com'
 const androidClientId = '623858970830-2qloc0ubuusb7vd4jvhg0s0nbblfa19c.apps.googleusercontent.com'
 
@@ -44,7 +44,17 @@ export default function  Page(){
     };
 
 
+    const handleSocialMedia = (sm:string) => {
+        switch (sm){
+            case "instagram":
+              return   Linking.openURL('https://www.instagram.com/bilel_lll_/');
+            case "github":
+              return Linking.openURL('https://github.com/bilelBoulhia');
+            case "facebook":
+              return Linking.openURL('https://www.facebook.com/bi.lel0509');
+        }
 
+    };
 
     const fadeAnim = new Animated.Value(0);
     const slideAnim = new Animated.Value(50);
@@ -103,12 +113,14 @@ export default function  Page(){
                     end={{ x: 1, y: 0 }}
                     style={styles.gradient}
                 >
-                    <Text style={styles.text}>
-                        Made by bilel {'<3'}
-                    </Text>
+                    <Ionicons name="logo-github" onPress={()=>handleSocialMedia('github')} size={24} color="white" />
+                    <Ionicons name="logo-instagram" onPress={()=>handleSocialMedia('instagram')} size={24} color="white" />
+                    <Ionicons name="logo-facebook" onPress={()=>handleSocialMedia('facebook')} size={24} color="white" />
+
                 </LinearGradient>
 
             </View>
+
 
 
         </View>
@@ -143,6 +155,7 @@ const styles = StyleSheet.create({
         bottom: 10,
         borderRadius: 25,
         overflow: 'hidden',
+
         elevation: 3,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -163,6 +176,9 @@ const styles = StyleSheet.create({
     gradient: {
         paddingVertical: 12,
         paddingHorizontal: 16,
+        display: 'flex',
+        flexDirection: 'row',
+        gap:16
     },
     contentContainer: {
         flexDirection: 'row',

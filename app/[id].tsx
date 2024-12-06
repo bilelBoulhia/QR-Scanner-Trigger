@@ -38,6 +38,7 @@ function CheckIfExist(list:string[], target:string) {
     }
 }
 
+
  export default function Page() {
     const { id } = useLocalSearchParams();
     const {token} = useToken();
@@ -104,17 +105,16 @@ function CheckIfExist(list:string[], target:string) {
 
     const handleScanning = ({ data }: BarcodeScanningResult) => {
         setScanned(true);
-        const parsedData = data.match(`${ToCompareTO}:(\\w+)`)[1];
-        let CheckingResult = CheckIfExist(fetchedNames, parsedData)
-
-        if(CheckingResult){
-            updateSpreadsheet(CheckingResult).catch(console.error);
-        }else {
-           Alert.alert('Not found', 'user not found', [
-               { text: 'OK', onPress: () => setScanned(false) },
-           ]);
-
+       try{
+           const parsedData = data.match(`${ToCompareTO}:(\\w+)`)[1];
+           updateSpreadsheet(CheckIfExist(fetchedNames, parsedData)).catch(console.error);
+       }catch(e){
+            Alert.alert('error', 'user not found make sure the data is scanned correctly.', [
+                { text: 'OK', onPress: () => setScanned(false) },
+            ]);
         }
+
+
     };
 
 
@@ -231,12 +231,12 @@ function CheckIfExist(list:string[], target:string) {
                                 ))}
                             </Picker>
                         ):(
-                            <ActivityIndicator color='pruple'/>
+                            <ActivityIndicator color='#60A5FA'/>
                         )}
 
                         <View style={{width:'100%'}}>
                             <TextInput style={{borderRadius:0,padding:12,borderBottomColor:'gray',borderBottomWidth:2,marginTop:10,marginBottom:10 ,width:"100%"}} placeholder='compare it with..' onChange={(value) => setToCompareTO(value)} />
-                            <Text style={{padding:10,color:'gray'}}>make sure the data you want scan in the qrcode is declare in this format value: (e.g.  name:NAMEHERE)</Text>
+                            <Text style={{padding:10,color:'gray'}}>make sure the data you want to scan in the qrcode is declared in this format value: (e.g.  name:NAMEHERE)</Text>
                         </View>
 
                         <View style={styles.modalButtons}>
@@ -444,13 +444,13 @@ const styles = StyleSheet.create({
     },
     Exitbutton: {
         padding: 10,
-        backgroundColor: "#6930a8",
+        backgroundColor: "#60A5FA",
         borderRadius: 5,
         alignSelf:'flex-end',
     },
     button: {
         padding: 10,
-        backgroundColor: "#6930a8",
+        backgroundColor: "#60A5FA",
         borderRadius: 5,
     },
     buttonText: {
